@@ -61,6 +61,7 @@ def collect_components():
             piece = {
                 "slot": slot,
                 "name": children[1].text,
+                "weight": children[29].text,
                 "physical": children[3].text,
                 "strike": children[5].text,
                 "slash": children[7].text,
@@ -74,7 +75,6 @@ def collect_components():
                 "focus": children[23].text,
                 "vitality": children[25].text,
                 "poise": children[27].text,
-                "weight": children[29].text,
                 "ratio": 0.0,
             }
 
@@ -129,16 +129,20 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"skipping {armor['name']} due to error: {e}")
 
-    print("finding the 20 most weight efficient components...")
+    print("finding the 10 most weight efficient components and the 10 highest value components...")
     time.sleep(2)
 
-
-    # show the most weight efficient components
+    # show the 20 best components
     sorted_armor = sorted(armor_pieces, key=lambda x: x["ratio"])
-    for armor_piece in sorted_armor[-20:]:
+    sorted_armor_by_max = sorted(armor_pieces, key=lambda x: x[maximize_stat])
+    
+    for armor_piece in sorted_armor[-10:] + sorted_armor_by_max[-10:]:
         print()
         for key, value in armor_piece.items():
-            print(f"{key}: {value}")
+            if key in ["slot", "name"]:
+                print(f"{key}: {value}")
+            else:
+                print(f"{key}: {format(value, '.2f')}")
 
     # collect components by slot
     chest = [i for i in sorted_armor if i["slot"] == "chest"]
@@ -170,6 +174,10 @@ if __name__ == "__main__":
     best_legs = remove_duplicates(legs_ratio[-10:], legs_max[-10:])
     best_gauntlets = remove_duplicates(gauntlets_ratio[-10:], gauntlets_max[-10:])
     best_helms = remove_duplicates(helm_ratio[-10:], helm_max[-10:])
+
+
+
+
 
     # get a list of all possible builds using the 20 highest efficiency pieces,
     # and the 20 highest choice stat pieces from each slot.
@@ -230,7 +238,10 @@ if __name__ == "__main__":
     for i in sorted_results[-25:]:
         print()
         for key, value in i.items():
-            print(f"{key}: {value}")
+            if key in ["name", "slot", "chest", "helm", "gauntlets", "legs"]:
+	            print(f"{key}: {value}")
+            else:
+                    print(f"{key}: {format(value, '.2f')}")
 
     print()
     input("Press any key to quit.")
