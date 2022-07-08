@@ -75,6 +75,7 @@ def collect_components():
                 "focus": children[23].text,
                 "vitality": children[25].text,
                 "poise": children[27].text,
+                "all": 0.0,
                 "ratio": 0.0,
             }
 
@@ -97,21 +98,18 @@ def print_available_stats():
             "focus",
             "vitality",
             "poise",
+            "all",
         ]
     for i in stats:
         print(i)
 
     return stats
 
-if __name__ == "__main__":
-    print("collecting data from the wiki...")
-    pre_armor_pieces = collect_components()
-
+def app(pre_armor_pieces):
     keys = print_available_stats()
-
     maximize_stat = ""
     while maximize_stat not in keys:
-        maximize_stat = input("enter the stat you want to maximize: ")
+        maximize_stat = input("enter the stat you want to maximize (or ctrl + c to exit): ")
         if maximize_stat not in keys:
             print(f"please select from the following stats: ")
             print_available_stats()
@@ -119,13 +117,23 @@ if __name__ == "__main__":
     armor_pieces = []
     for armor in pre_armor_pieces:
         try:
-            armor["ratio"] = float(armor[maximize_stat]) / float(armor['weight'])
             # ensure we are only using pieces that won't error out later.
             for key in armor.keys():
                 if key not in ["name", "slot"]:
                     armor[key] = float(armor[key])
 
+            # get the average resistance for this armor piece.
+            mean_res = 0.0
+            for key, value in armor.items():
+                if key not in ["name", "slot", "all", "weight", "ratio"]:
+                    mean_res += value
+            armor["all"] = mean_res / 12
+
+            # get the weight efficiency of this piece of armor's chosen stat.
+            armor["ratio"] = armor[maximize_stat] / armor["weight"]
+
             armor_pieces.append(armor)
+
         except Exception as e:
             print(f"skipping {armor['name']} due to error: {e}")
 
@@ -133,9 +141,9 @@ if __name__ == "__main__":
     time.sleep(2)
 
     # show the 20 best components
-    sorted_armor = sorted(armor_pieces, key=lambda x: x["ratio"])
-    sorted_armor_by_max = sorted(armor_pieces, key=lambda x: x[maximize_stat])
-    
+    sorted_armor = sorted(armor_pieces, key=lambda x: (x["ratio"], x["all"], -x["weight"]))
+    sorted_armor_by_max = sorted(armor_pieces, key=lambda x: (x[maximize_stat], x["all"], -x["weight"]))
+
     for armor_piece in sorted_armor[-10:] + sorted_armor_by_max[-10:]:
         print()
         for key, value in armor_piece.items():
@@ -175,10 +183,6 @@ if __name__ == "__main__":
     best_gauntlets = remove_duplicates(gauntlets_ratio[-10:], gauntlets_max[-10:])
     best_helms = remove_duplicates(helm_ratio[-10:], helm_max[-10:])
 
-
-
-
-
     # get a list of all possible builds using the 20 highest efficiency pieces,
     # and the 20 highest choice stat pieces from each slot.
     all_builds = list(
@@ -208,12 +212,25 @@ if __name__ == "__main__":
             "focus": 0.0,
             "vitality": 0.0,
             "poise": 0.0,
+            "mean_res": 0.0,
         }
+
+        count_components = len([i for i in build if i["name"] != "empty"])
+        if count_components == 0:
+            # you're naked!
+            continue
 
         for component in build:
             for key, value in component.items():
-                if key not in ["name", "slot", "ratio"]:
+                if key not in ["name", "slot", "ratio", "all"]:
                     build_specs[key] += value
+
+        total_resistance = 0
+        for key, value in build_specs.items():
+            if key not in ["name", "slot", "ratio", "mean_res", "weight"]:
+                total_resistance += value
+
+        build_specs["mean_res"] = total_resistance / 12
 
         values.append(build_specs)
 
@@ -233,9 +250,12 @@ if __name__ == "__main__":
 
         results.append(result)
 
-    sorted_results = sorted(results, key=lambda x: x[maximize_stat])
+    if maximize_stat == "all":
+        sorted_results = sorted(results, key=lambda x: (x["mean_res"], -x["weight"]))
+    else:
+        sorted_results = sorted(results, key=lambda x: (x[maximize_stat], x["mean_res"]))
 
-    for i in sorted_results[-25:]:
+    for i in sorted_results[-30:]:
         print()
         for key, value in i.items():
             if key in ["name", "slot", "chest", "helm", "gauntlets", "legs"]:
@@ -244,5 +264,11 @@ if __name__ == "__main__":
                     print(f"{key}: {format(value, '.2f')}")
 
     print()
-    input("Press any key to quit.")
-    exit()
+
+
+if __name__ == "__main__":
+    print("collecting data from the wiki...")
+    pre_armor_pieces = collect_components()
+
+    while True:
+        app(pre_armor_pieces)
