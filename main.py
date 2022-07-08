@@ -4,6 +4,14 @@ from bs4 import BeautifulSoup
 from itertools import product
 import time
 
+def remove_duplicates(a, b):
+    results = []
+    for i in a + b:
+        if i["name"] not in [i["name"] for i in results]:
+            results.append(i)
+    return results
+
+
 def empty_piece(slot):
     piece = {
         "slot": slot,
@@ -157,14 +165,20 @@ if __name__ == "__main__":
     gauntlets_empty = empty_piece("gauntlets")
     helm_empty = empty_piece("helm")
 
+    # remove duplicate pieces
+    best_chest = remove_duplicates(chest_ratio[-10:], chest_max[-10:])
+    best_legs = remove_duplicates(legs_ratio[-10:], legs_max[-10:])
+    best_gauntlets = remove_duplicates(gauntlets_ratio[-10:], gauntlets_max[-10:])
+    best_helms = remove_duplicates(helm_ratio[-10:], helm_max[-10:])
+
     # get a list of all possible builds using the 20 highest efficiency pieces,
     # and the 20 highest choice stat pieces from each slot.
     all_builds = list(
             product(
-                chest_ratio[-10:] + chest_max[-10:] + [chest_empty],
-                legs_ratio[-10:] + legs_max[-10:] + [legs_empty],
-                gauntlets_ratio[-10:] + gauntlets_max[-10:] + [gauntlets_empty],
-                helm_ratio[-10:] + helm_max[-10:] + [helm_empty]
+                best_chest + [chest_empty],
+                best_legs + [legs_empty],
+                best_gauntlets + [gauntlets_empty],
+                best_helms + [helm_empty]
             )
         )
 
