@@ -75,7 +75,6 @@ def collect_components():
                 "focus": children[23].text,
                 "vitality": children[25].text,
                 "poise": children[27].text,
-                "all": 0.0,
                 "ratio": 0.0,
             }
 
@@ -98,12 +97,25 @@ def print_available_stats():
             "focus",
             "vitality",
             "poise",
-            "all",
         ]
+    print()
     for i in stats:
         print(i)
 
+    print()
     return stats
+
+def print_sets(list_of_armor_sets, description):
+    rank = len(list_of_armor_sets)
+    for armor_set in list_of_armor_sets:
+        print()
+        print(f"{description}; Rank {rank}")
+        for key, value in armor_set.items():
+            if key in ["name", "slot", "chest", "helm", "gauntlets", "legs"]:
+                print(f"{key}: {value}")
+            else:
+                print(f"{key}: {format(value, '.2f')}")
+        rank -= 1
 
 def app(pre_armor_pieces):
     keys = print_available_stats()
@@ -111,6 +123,7 @@ def app(pre_armor_pieces):
     while maximize_stat not in keys:
         maximize_stat = input("enter the stat you want to maximize (or ctrl + c to exit): ")
         if maximize_stat not in keys:
+            print()
             print(f"please select from the following stats: ")
             print_available_stats()
 
@@ -122,35 +135,18 @@ def app(pre_armor_pieces):
                 if key not in ["name", "slot"]:
                     armor[key] = float(armor[key])
 
-            # get the average resistance for this armor piece.
-            mean_res = 0.0
-            for key, value in armor.items():
-                if key not in ["name", "slot", "all", "weight", "ratio"]:
-                    mean_res += value
-            armor["all"] = mean_res / 12
-
             # get the weight efficiency of this piece of armor's chosen stat.
             armor["ratio"] = armor[maximize_stat] / armor["weight"]
-
             armor_pieces.append(armor)
 
         except Exception as e:
-            print(f"skipping {armor['name']} due to error: {e}")
+            # print(f"skipping {armor['name']} due to error: {e}")
+            pass
 
-    print("finding the 10 most weight efficient components and the 10 highest value components...")
-    time.sleep(2)
 
     # show the 20 best components
-    sorted_armor = sorted(armor_pieces, key=lambda x: (x["ratio"], x["all"], -x["weight"]))
-    sorted_armor_by_max = sorted(armor_pieces, key=lambda x: (x[maximize_stat], x["all"], -x["weight"]))
-
-    for armor_piece in sorted_armor[-10:] + sorted_armor_by_max[-10:]:
-        print()
-        for key, value in armor_piece.items():
-            if key in ["slot", "name"]:
-                print(f"{key}: {value}")
-            else:
-                print(f"{key}: {format(value, '.2f')}")
+    sorted_armor = sorted(armor_pieces, key=lambda x: (x["ratio"], -x["weight"]))
+    sorted_armor_by_max = sorted(armor_pieces, key=lambda x: (x[maximize_stat], -x["weight"]))
 
     # collect components by slot
     chest = [i for i in sorted_armor if i["slot"] == "chest"]
@@ -168,7 +164,6 @@ def app(pre_armor_pieces):
     helm_ratio = sorted(helm, key=lambda x: x["ratio"])
     helm_max = sorted(helm, key=lambda x: x[maximize_stat])
 
-    print()
     max_weight = float(input("enter your weight limitation for armor: "))
 
     # we need an empty piece for each slot, create them here.
@@ -177,14 +172,14 @@ def app(pre_armor_pieces):
     gauntlets_empty = empty_piece("gauntlets")
     helm_empty = empty_piece("helm")
 
-    # remove duplicate pieces
+    # remove duplicate pieces. This can happen if one of the most efficient pieces is also one of the highest value peices.
     best_chest = remove_duplicates(chest_ratio[-10:], chest_max[-10:])
     best_legs = remove_duplicates(legs_ratio[-10:], legs_max[-10:])
     best_gauntlets = remove_duplicates(gauntlets_ratio[-10:], gauntlets_max[-10:])
     best_helms = remove_duplicates(helm_ratio[-10:], helm_max[-10:])
 
-    # get a list of all possible builds using the 20 highest efficiency pieces,
-    # and the 20 highest choice stat pieces from each slot.
+    # get a list of all possible builds using the 10 highest efficiency pieces,
+    # and the 10 highest choice stat pieces from each slot.
     all_builds = list(
             product(
                 best_chest + [chest_empty],
@@ -212,25 +207,12 @@ def app(pre_armor_pieces):
             "focus": 0.0,
             "vitality": 0.0,
             "poise": 0.0,
-            "mean_res": 0.0,
         }
-
-        count_components = len([i for i in build if i["name"] != "empty"])
-        if count_components == 0:
-            # you're naked!
-            continue
 
         for component in build:
             for key, value in component.items():
-                if key not in ["name", "slot", "ratio", "all"]:
+                if key not in ["name", "slot", "ratio"]:
                     build_specs[key] += value
-
-        total_resistance = 0
-        for key, value in build_specs.items():
-            if key not in ["name", "slot", "ratio", "mean_res", "weight"]:
-                total_resistance += value
-
-        build_specs["mean_res"] = total_resistance / 12
 
         values.append(build_specs)
 
@@ -250,21 +232,18 @@ def app(pre_armor_pieces):
 
         results.append(result)
 
-    if maximize_stat == "all":
-        sorted_results = sorted(results, key=lambda x: (x["mean_res"], -x["weight"]))
-    else:
-        sorted_results = sorted(results, key=lambda x: (x[maximize_stat], x["mean_res"]))
+    sorted_results = sorted(results, key=lambda x: (x[maximize_stat], -x["weight"]))
 
-    for i in sorted_results[-30:]:
-        print()
-        for key, value in i.items():
-            if key in ["name", "slot", "chest", "helm", "gauntlets", "legs"]:
-	            print(f"{key}: {value}")
-            else:
-                    print(f"{key}: {format(value, '.2f')}")
+    # we also want at least one set with no helm, one set with no chest, etc. Get the best ones here, if they exist.
+    empty_slot_sets = []
+    for slot in ["chest", "helm", "legs", "gauntlets"]:
+        for armor_set in sorted_results[::-1]:
+            if armor_set[slot] == "empty":
+                empty_slot_sets.append(armor_set)
+                break
 
-    print()
-
+    print_sets(empty_slot_sets, "Build With an Empty Slot")
+    print_sets(sorted_results[-15:], "Optimal Build")
 
 if __name__ == "__main__":
     print("collecting data from the wiki...")
