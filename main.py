@@ -54,7 +54,7 @@ def collect_components():
 
         for row in rows:
             children = [i for i in row.children]
-            
+
             # for index, data in enumerate(children):
             #    print(f"{index}: {data.text}")
 
@@ -223,10 +223,9 @@ def app(pre_armor_pieces):
             continue
 
         result = {}
-        result["chest"] = [i["name"] for i in build if i["slot"] == "chest"][0]
-        result["helm"] = [i["name"] for i in build if i["slot"] == "helm"][0]
-        result["gauntlets"] = [i["name"] for i in build if i["slot"] == "gauntlets"][0]
-        result["legs"] = [i["name"] for i in build if i["slot"] == "legs"][0]
+        for slot in ["chest", "helm", "gauntlets", "legs"]:
+            result[slot] = [i["name"] for i in build if i["slot"] == slot][0]
+
         for key, value in val.items():
             result[key] = value
 
