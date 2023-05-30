@@ -18,5 +18,4 @@ Find optimal armor set for any stat within weight limitations.
 # Additional Info
 - The armor sets are calculated using the 10 components from each armor slot that have the best ratios, as well as the 10 from each slot that have the highest raw value for your chosen stat.
 - It is technically possible to calculate sets using ALL components, but most people won't have enough ram (or time) for this, and the results would likely not differ by much anyway.
-- Every time you run this, it will access 4 of the Elden Ring wiki's pages. Please don't spam this script all day, as the wiki may automatically ban your IP.
 - If this script ever stops working, it's most likely due to the wiki reformatting their tables or moving pages. Open an issue if this happens and I'll try to get it updated.
