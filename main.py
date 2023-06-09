@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import sys
+import os
 import requests
 from bs4 import BeautifulSoup
 from itertools import product
-import time
+
 
 def remove_duplicates(a, b):
     results = []
@@ -34,21 +36,29 @@ def empty_piece(slot):
     }
     return piece
 
-def collect_components():
+
+def collect_components(refresh):
     components = {
-            "helm": "https://eldenring.wiki.fextralife.com/Helms",
-            "chest": "https://eldenring.wiki.fextralife.com/Chest+Armor",
-            "gauntlets": "https://eldenring.wiki.fextralife.com/Gauntlets",
-            "legs": "https://eldenring.wiki.fextralife.com/Leg+Armor",
-        }
+        "helm": "https://eldenring.wiki.fextralife.com/Helms",
+        "chest": "https://eldenring.wiki.fextralife.com/Chest+Armor",
+        "gauntlets": "https://eldenring.wiki.fextralife.com/Gauntlets",
+        "legs": "https://eldenring.wiki.fextralife.com/Leg+Armor",
+    }
 
     armor_pieces = []
 
     for slot, component in components.items():
-        r = requests.get(component)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        if refresh or not os.path.exists(f"{slot}.html"):
+            print(f"Updating cache for {slot}.")
+            r = requests.get(component)
+            soup = BeautifulSoup(r.text, "html.parser")
+        else:
+            print(f"Using cached data for {slot}. Pass '--refresh' to update cache.")
+            with open(f"{slot}.html") as f:
+                r = f.read()
+            soup = BeautifulSoup(r, "html.parser")
 
-        table = soup.find("table", attrs = {"class": "wiki_table sortable searchable"})
+        table = soup.find("table", attrs={"class": "wiki_table sortable searchable"})
         tbody = table.find("tbody")
         rows = tbody.find_all("tr")
 
@@ -60,7 +70,7 @@ def collect_components():
 
             piece = {
                 "slot": slot,
-                "name": children[1].text,
+                "name": children[1].text.lower(),
                 "weight": children[29].text,
                 "physical": children[3].text,
                 "strike": children[5].text,
@@ -82,28 +92,30 @@ def collect_components():
 
     return armor_pieces
 
+
 def print_available_stats():
     stats = [
-            "physical",
-            "strike",
-            "slash",
-            "pierce",
-            "magic",
-            "fire",
-            "lightning",
-            "holy",
-            "immunity",
-            "robustness",
-            "focus",
-            "vitality",
-            "poise",
-        ]
+        "physical",
+        "strike",
+        "slash",
+        "pierce",
+        "magic",
+        "fire",
+        "lightning",
+        "holy",
+        "immunity",
+        "robustness",
+        "focus",
+        "vitality",
+        "poise",
+    ]
     print()
     for i in stats:
         print(i)
 
     print()
     return stats
+
 
 def print_sets(list_of_armor_sets, description):
     rank = len(list_of_armor_sets)
@@ -117,19 +129,29 @@ def print_sets(list_of_armor_sets, description):
                 print(f"{key}: {format(value, '.2f')}")
         rank -= 1
 
+
 def app(pre_armor_pieces):
     keys = print_available_stats()
     maximize_stat = ""
+    ignore_keywords = []
     while maximize_stat not in keys:
-        maximize_stat = input("enter the stat you want to maximize (or ctrl + c to exit): ")
+        maximize_stat = input(
+            "enter the stat you want to maximize (or ctrl + c to exit): "
+        )
         if maximize_stat not in keys:
             print()
-            print(f"please select from the following stats: ")
+            print("please select from the following stats: ")
             print_available_stats()
+
+    while ignore_keyword := input("ignore armor with keyword ([enter] to skip): "):
+        ignore_keywords.append(ignore_keyword)
 
     armor_pieces = []
     for armor in pre_armor_pieces:
         try:
+            if any((i in armor["name"] for i in ignore_keywords)):
+                # Skip any armor pieces with ignored keywords.
+                continue
             # ensure we are only using pieces that won't error out later.
             for key in armor.keys():
                 if key not in ["name", "slot"]:
@@ -139,14 +161,12 @@ def app(pre_armor_pieces):
             armor["ratio"] = armor[maximize_stat] / armor["weight"]
             armor_pieces.append(armor)
 
-        except Exception as e:
+        except Exception:
             # print(f"skipping {armor['name']} due to error: {e}")
             pass
 
-
     # show the 20 best components
-    sorted_armor = sorted(armor_pieces, key=lambda x: (x["ratio"], -x["weight"]))
-    sorted_armor_by_max = sorted(armor_pieces, key=lambda x: (x[maximize_stat], -x["weight"]))
+    sorted_armor = sorted(armor_pieces, key=lambda x: (x[maximize_stat], -x["weight"]))
 
     # collect components by slot
     chest = [i for i in sorted_armor if i["slot"] == "chest"]
@@ -172,7 +192,8 @@ def app(pre_armor_pieces):
     gauntlets_empty = empty_piece("gauntlets")
     helm_empty = empty_piece("helm")
 
-    # remove duplicate pieces. This can happen if one of the most efficient pieces is also one of the highest value peices.
+    # remove duplicate pieces. This can happen if one of the most
+    # efficient pieces is also one of the highest value peices.
     best_chest = remove_duplicates(chest_ratio[-10:], chest_max[-10:])
     best_legs = remove_duplicates(legs_ratio[-10:], legs_max[-10:])
     best_gauntlets = remove_duplicates(gauntlets_ratio[-10:], gauntlets_max[-10:])
@@ -181,13 +202,13 @@ def app(pre_armor_pieces):
     # get a list of all possible builds using the 10 highest efficiency pieces,
     # and the 10 highest choice stat pieces from each slot.
     all_builds = list(
-            product(
-                best_chest + [chest_empty],
-                best_legs + [legs_empty],
-                best_gauntlets + [gauntlets_empty],
-                best_helms + [helm_empty]
-            )
+        product(
+            best_chest + [chest_empty],
+            best_legs + [legs_empty],
+            best_gauntlets + [gauntlets_empty],
+            best_helms + [helm_empty],
         )
+    )
 
     # get the specs for each armor set.
     values = []
@@ -233,7 +254,8 @@ def app(pre_armor_pieces):
 
     sorted_results = sorted(results, key=lambda x: (x[maximize_stat], -x["weight"]))
 
-    # we also want at least one set with no helm, one set with no chest, etc. Get the best ones here, if they exist.
+    # we also want at least one set with no helm, one set with no chest, etc.
+    # Get the best ones here, if they exist.
     empty_slot_sets = []
     for slot in ["chest", "helm", "legs", "gauntlets"]:
         for armor_set in sorted_results[::-1]:
@@ -244,9 +266,9 @@ def app(pre_armor_pieces):
     print_sets(empty_slot_sets, "Build With an Empty Slot")
     print_sets(sorted_results[-15:], "Optimal Build")
 
-if __name__ == "__main__":
-    print("collecting data from the wiki...")
-    pre_armor_pieces = collect_components()
 
-    while True:
-        app(pre_armor_pieces)
+if __name__ == "__main__":
+    refresh = sys.argv[-1] == "--refresh"
+    pre_armor_pieces = collect_components(refresh)
+    app(pre_armor_pieces)
+    exit()
