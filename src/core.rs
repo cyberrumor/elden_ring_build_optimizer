@@ -221,37 +221,47 @@ pub fn get_set(weight_restriction: u16, pieces: Vec<ArmorPiece>) -> ArmorSet {
 
     let mut result = ArmorSet::new();
     let mut potential_set: ArmorSet;
+    let mut potential_weight: u16;
+    let mut potential_maximize_stat: u16;
     println!("Finding the best set...");
     for helm in helms {
         for chest in &chests {
             for gauntlet in &gauntlets {
                 for leg in &legs {
                     // Don't allocate an ArmorSet if this gear is too heavy.
-                    if helm.weight + chest.weight + gauntlet.weight + leg.weight
-                        > weight_restriction
-                    {
+                    potential_weight = helm.weight + chest.weight + gauntlet.weight + leg.weight;
+
+                    if potential_weight > weight_restriction {
                         continue;
                     }
-                    // Don't allocate an ArmorSet if maximize stat is not greater than or equal.
-                    if helm.maximize_stat
+
+                    // Don't allocate an ArmorSet if result.maximize_stat is better than the
+                    // potential stat.
+                    potential_maximize_stat = helm.maximize_stat
                         + chest.maximize_stat
                         + gauntlet.maximize_stat
-                        + leg.maximize_stat
-                        < result.maximize_stat
+                        + leg.maximize_stat;
+
+                    if result.maximize_stat > potential_maximize_stat {
+                        continue;
+                    }
+
+                    // Don't allocate an ArmorSet if the maximize_stats are the same, but the
+                    // weight is not _strictly_ better. We can avoid a few more allocations if we
+                    // don't re-assign the result when there's ties, so don't consider equal weight
+                    // a contender.
+                    if result.maximize_stat == potential_maximize_stat
+                        && result.weight < potential_weight
                     {
                         continue;
                     }
+
+                    // We found one that is strictly better. Finally allocate the new set
+                    // and save it. Allocating a new set is time-expensive if we do it every
+                    // loop, so it's better to check all the conditions first.
                     potential_set =
                         ArmorSet::from(helm.clone(), chest.clone(), gauntlet.clone(), leg.clone());
-                    if potential_set.maximize_stat == result.maximize_stat {
-                        // Choose the one with the lower weight
-                        if potential_set.weight < result.weight {
-                            result = potential_set.clone();
-                        }
-                    } else if potential_set.maximize_stat > result.maximize_stat {
-                        // Strictly better, ignore weight.
-                        result = potential_set.clone();
-                    }
+                    result = potential_set;
                 }
             }
         }
