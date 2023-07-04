@@ -28,6 +28,10 @@ pub struct ArmorPiece {
     pub fire: u16,
     pub lightning: u16,
     pub holy: u16,
+    pub immunity: u16,
+    pub robustness: u16,
+    pub focus: u16,
+    pub vitality: u16,
     pub poise: u16,
     pub weight: u16,
     pub maximize_stat: u16,
@@ -47,6 +51,10 @@ impl ArmorPiece {
             fire: 0,
             lightning: 0,
             holy: 0,
+            immunity: 0,
+            robustness: 0,
+            focus: 0,
+            vitality: 0,
             poise: 0,
             weight: 0,
             maximize_stat: 0,
@@ -74,6 +82,10 @@ pub struct ArmorSet {
     pub fire: u16,
     pub lightning: u16,
     pub holy: u16,
+    pub immunity: u16,
+    pub robustness: u16,
+    pub focus: u16,
+    pub vitality: u16,
     pub poise: u16,
     pub weight: u16,
     pub maximize_stat: u16,
@@ -95,6 +107,10 @@ impl ArmorSet {
             fire: 0,
             lightning: 0,
             holy: 0,
+            immunity: 0,
+            robustness: 0,
+            focus: 0,
+            vitality: 0,
             poise: 0,
             weight: 0,
             maximize_stat: 0,
@@ -129,6 +145,14 @@ impl ArmorSet {
 
             holy: helm.holy + chest.holy + gauntlet.holy + leg.holy,
 
+            immunity: helm.immunity + chest.immunity + gauntlet.immunity + leg.immunity,
+
+            robustness: helm.robustness + chest.robustness + gauntlet.robustness + leg.robustness,
+
+            focus: helm.focus + chest.focus + gauntlet.focus + leg.focus,
+
+            vitality: helm.vitality + chest.vitality + gauntlet.vitality + leg.vitality,
+
             poise: helm.poise + chest.poise + gauntlet.poise + leg.poise,
 
             weight: helm.weight + chest.weight + gauntlet.weight + leg.weight,
@@ -159,6 +183,10 @@ impl std::fmt::Display for ArmorSet {
             fire:       {}\n\
             lightning:  {}\n\
             holy:       {}\n\
+            immunity:   {}\n\
+            robustness: {}\n\
+            focus:      {}\n\
+            vitality:   {}\n\
             poise:      {}\n",
             self.chest,
             self.helm,
@@ -168,12 +196,16 @@ impl std::fmt::Display for ArmorSet {
             f32::from(self.physical) / 10.0,
             f32::from(self.slash) / 10.0,
             f32::from(self.strike) / 10.0,
-            f32::from(self.pierce)  / 10.0,
-            f32::from(self.magic)  / 10.0,
-            f32::from(self.fire)  / 10.0,
-            f32::from(self.lightning)  / 10.0,
-            f32::from(self.holy)  / 10.0,
-            f32::from(self.poise)  / 10.0,
+            f32::from(self.pierce) / 10.0,
+            f32::from(self.magic) / 10.0,
+            f32::from(self.fire) / 10.0,
+            f32::from(self.lightning) / 10.0,
+            f32::from(self.holy) / 10.0,
+            f32::from(self.immunity) / 10.0,
+            f32::from(self.robustness) / 10.0,
+            f32::from(self.focus) / 10.0,
+            f32::from(self.vitality) / 10.0,
+            f32::from(self.poise) / 10.0,
         )
     }
 }
@@ -195,7 +227,18 @@ pub fn get_set(weight_restriction: u16, pieces: Vec<ArmorPiece>) -> ArmorSet {
             for gauntlet in &gauntlets {
                 for leg in &legs {
                     // Don't allocate an ArmorSet if this gear is too heavy.
-                    if helm.weight + chest.weight + gauntlet.weight + leg.weight > weight_restriction {
+                    if helm.weight + chest.weight + gauntlet.weight + leg.weight
+                        > weight_restriction
+                    {
+                        continue;
+                    }
+                    // Don't allocate an ArmorSet if maximize stat is not greater than or equal.
+                    if helm.maximize_stat
+                        + chest.maximize_stat
+                        + gauntlet.maximize_stat
+                        + leg.maximize_stat
+                        < result.maximize_stat
+                    {
                         continue;
                     }
                     potential_set =
@@ -280,6 +323,18 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
                 8 => {
                     piece.holy = num;
                 }
+                9 => {
+                    piece.immunity = num;
+                }
+                10 => {
+                    piece.robustness = num;
+                }
+                11 => {
+                    piece.focus = num;
+                }
+                12 => {
+                    piece.vitality = num;
+                }
                 13 => {
                     piece.poise = num;
                 }
@@ -313,6 +368,18 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
             }
             7 => {
                 piece.maximize_stat = piece.holy;
+            }
+            8 => {
+                piece.maximize_stat = piece.immunity;
+            }
+            9 => {
+                piece.maximize_stat = piece.robustness;
+            }
+            10 => {
+                piece.maximize_stat = piece.focus;
+            }
+            11 => {
+                piece.maximize_stat = piece.vitality;
             }
             12 => {
                 piece.maximize_stat = piece.poise;

@@ -11,15 +11,15 @@ fn main() {
         "fire".to_string(),
         "lightning".to_string(),
         "holy".to_string(),
-        "immunity (unsupported)".to_string(),
-        "robustness (unsupported)".to_string(),
-        "focus (unsupported)".to_string(),
-        "vitality (unsupported)".to_string(),
+        "immunity".to_string(),
+        "robustness".to_string(),
+        "focus".to_string(),
+        "vitality".to_string(),
         "poise".to_string(),
     ];
 
     // Get the name of the stat the user wants to optimize.
-    let mut maximize_stat: usize;
+    let maximize_stat: usize;
     loop {
         let mut input = String::new();
         for (index, key) in keys.iter().enumerate() {
@@ -36,10 +36,6 @@ fn main() {
             println!("{input} is not an available stat");
             continue;
         };
-        if vec![8, 9, 10, 11].contains(&maximize_stat) {
-            println!("Can't pick immunity, robsutness, focus or vitality :c");
-            continue;
-        }
         break;
     }
 
