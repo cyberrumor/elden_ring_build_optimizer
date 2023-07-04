@@ -21,8 +21,8 @@ pub struct ArmorPiece {
     pub name: String,
     pub slot: Slot,
     pub physical: u16,
-    pub slash: u16,
     pub strike: u16,
+    pub slash: u16,
     pub pierce: u16,
     pub magic: u16,
     pub fire: u16,
@@ -44,8 +44,8 @@ impl ArmorPiece {
             name: String::new(),
             slot,
             physical: 0,
-            slash: 0,
             strike: 0,
+            slash: 0,
             pierce: 0,
             magic: 0,
             fire: 0,
@@ -75,8 +75,8 @@ pub struct ArmorSet {
     pub gauntlets: String,
     pub legs: String,
     pub physical: u16,
-    pub slash: u16,
     pub strike: u16,
+    pub slash: u16,
     pub pierce: u16,
     pub magic: u16,
     pub fire: u16,
@@ -100,8 +100,8 @@ impl ArmorSet {
             gauntlets: String::new(),
             legs: String::new(),
             physical: 0,
-            slash: 0,
             strike: 0,
+            slash: 0,
             pierce: 0,
             magic: 0,
             fire: 0,
@@ -176,8 +176,8 @@ impl std::fmt::Display for ArmorSet {
             legs:       {}\n\
             weight:     {}\n\
             physical:   {}\n\
-            slash:      {}\n\
             strike:     {}\n\
+            slash:      {}\n\
             pierce:     {}\n\
             magic:      {}\n\
             fire:       {}\n\
@@ -194,8 +194,8 @@ impl std::fmt::Display for ArmorSet {
             self.legs,
             f32::from(self.weight) / 10.0,
             f32::from(self.physical) / 10.0,
-            f32::from(self.slash) / 10.0,
             f32::from(self.strike) / 10.0,
+            f32::from(self.slash) / 10.0,
             f32::from(self.pierce) / 10.0,
             f32::from(self.magic) / 10.0,
             f32::from(self.fire) / 10.0,
