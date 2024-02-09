@@ -55,6 +55,14 @@ fn main() {
         }
     }
 
+    // Ignore unobtainable items.
+    ignore_keywords.push("grass hair ornament".into());
+    ignore_keywords.push("deathbed smalls".into());
+    ignore_keywords.push("millicent's".into());
+    ignore_keywords.push("brave's".into());
+    ignore_keywords.push("golden prosthetic".into());
+    ignore_keywords.push("ragged".into());
+
     // Get the available weight.
     let weight_restriction: f32;
     loop {
