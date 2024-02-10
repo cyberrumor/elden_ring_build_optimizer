@@ -2,8 +2,8 @@ pub mod core;
 
 #[cfg(test)]
 pub mod tests {
-    use lazy_static::lazy_static;
     use super::core;
+    use lazy_static::lazy_static;
 
     const MAXIMIZE_STAT: usize = 0;
     const WEIGHT_RESTRICTION: u16 = 60;

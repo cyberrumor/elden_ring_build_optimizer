@@ -1,6 +1,32 @@
 use std::io::prelude::*;
 pub mod core;
 
+#[derive(Debug)]
+struct IgnoreKeyword {
+    name: [u8; core::MAX_NAME_LENGTH],
+    length: usize,
+}
+
+impl IgnoreKeyword {
+    fn new() -> Self {
+        Self {
+            name: [0; core::MAX_NAME_LENGTH],
+            length: 0,
+        }
+    }
+
+    fn set_name(&mut self, value: &str) {
+        let bytes = value.as_bytes();
+        let length = bytes.len().min(core::MAX_NAME_LENGTH);
+        self.name[..length].copy_from_slice(&bytes[..length]);
+        self.length = length;
+    }
+
+    fn get_name(&self) -> &str {
+        unsafe { std::str::from_utf8_unchecked(&self.name[..self.length]) }
+    }
+}
+
 fn main() {
     let keys: std::vec::Vec<String> = vec![
         "physical".to_string(),
@@ -40,7 +66,7 @@ fn main() {
     }
 
     // Get keywords that should be ignored.
-    let mut ignore_keywords: Vec<String> = Vec::new();
+    let mut ignore_keywords: Vec<IgnoreKeyword> = Vec::new();
     loop {
         let mut input = String::new();
         print!("Choose a keyword to ignore ([enter] to skip): ");
@@ -48,20 +74,30 @@ fn main() {
         std::io::stdin()
             .read_line(&mut input)
             .expect("Failed to get user input.");
-        input = input.trim().to_lowercase().to_string();
+        input = input.trim().to_lowercase();
         match input.len() {
             0 => break,
-            _ => ignore_keywords.push(input),
+            _ => {
+                let mut ignore_keyword = IgnoreKeyword::new();
+                ignore_keyword.set_name(&input);
+                ignore_keywords.push(ignore_keyword);
+            }
         }
     }
 
     // Ignore unobtainable items.
-    ignore_keywords.push("grass hair ornament".into());
-    ignore_keywords.push("deathbed smalls".into());
-    ignore_keywords.push("millicent's".into());
-    ignore_keywords.push("brave's".into());
-    ignore_keywords.push("golden prosthetic".into());
-    ignore_keywords.push("ragged".into());
+    for i in [
+        "grass hair ornament",
+        "deathbed smalls",
+        "millicent's",
+        "brave's",
+        "golden prosthetic",
+        "ragged",
+    ] {
+        let mut ignore_keyword = IgnoreKeyword::new();
+        ignore_keyword.set_name(i);
+        ignore_keywords.push(ignore_keyword);
+    }
 
     // Get the available weight.
     let weight_restriction: f32;
@@ -84,17 +120,16 @@ fn main() {
 
     // Get the pieces.
     let mut pieces: Vec<core::ArmorPiece> = core::get_pieces(maximize_stat);
+
     pieces = pieces
         .into_iter()
-        .filter(|x| x.weight < weight_restriction)
+        .filter(|piece| piece.weight < weight_restriction)
+        .filter(|piece| {
+            ignore_keywords
+                .iter()
+                .all(|ignore_keyword| !piece.get_name().contains(ignore_keyword.get_name()))
+        })
         .collect();
-
-    if !ignore_keywords.is_empty() {
-        pieces = pieces
-            .into_iter()
-            .filter(|x| ignore_keywords.iter().all(|n| !x.name.contains(n)))
-            .collect();
-    }
 
     let result = core::get_set(weight_restriction, pieces);
     println!("\n{}", result);
