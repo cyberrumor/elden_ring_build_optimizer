@@ -66,7 +66,10 @@ impl ArmorPiece {
     }
 
     pub fn get_name(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.name[..self.name_length]) }
+        let Ok(res) = std::str::from_utf8(&self.name[..self.name_length]) else {
+            return &"";
+        };
+        res
     }
 
     pub fn set_name(&mut self, value: &str) {

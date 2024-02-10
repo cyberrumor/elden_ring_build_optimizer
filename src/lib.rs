@@ -11,18 +11,27 @@ pub mod tests {
         static ref PIECES: Vec<core::ArmorPiece> = core::get_pieces(MAXIMIZE_STAT);
     }
 
+    fn str_to_bytes(value: &str) -> [u8; core::MAX_NAME_LENGTH] {
+        let mut result: [u8; core::MAX_NAME_LENGTH] = [0; core::MAX_NAME_LENGTH];
+        let bytes = value.as_bytes();
+        let length = bytes.len().min(core::MAX_NAME_LENGTH);
+        result[..length].copy_from_slice(&bytes[..length]);
+        result
+    }
+
     #[test]
     fn test_attribtue_numbers_helm() {
         let mut cleanrot_helm: core::ArmorPiece = core::ArmorPiece::new(core::Slot::Empty);
         for piece in &*PIECES {
-            if piece.name == String::from("cleanrot helm") {
+            if piece.name == str_to_bytes("cleanrot helm") {
                 cleanrot_helm = piece.clone();
                 break;
             }
         }
         let expected = core::ArmorPiece {
             // Cleanrot Helm has a unique number for each stat.
-            name: String::from("cleanrot helm"),
+            name: str_to_bytes("cleanrot helm"),
+            name_length: "cleanrot helm".len(),
             slot: core::Slot::Helm,
             physical: 52,
             slash: 58,
@@ -47,13 +56,14 @@ pub mod tests {
     fn test_attribute_numbers_chest() {
         let mut cleanrot_armor: core::ArmorPiece = core::ArmorPiece::new(core::Slot::Empty);
         for piece in &*PIECES {
-            if piece.name == String::from("cleanrot armor") {
+            if piece.name == str_to_bytes("cleanrot armor") {
                 cleanrot_armor = piece.clone();
                 break;
             }
         }
         let expected = core::ArmorPiece {
-            name: String::from("cleanrot armor"),
+            name: str_to_bytes("cleanrot armor"),
+            name_length: "cleanrot armor".len(),
             slot: core::Slot::Chest,
             physical: 146,
             slash: 160,
@@ -78,13 +88,14 @@ pub mod tests {
     fn test_attribute_numbers_gauntlet() {
         let mut cleanrot_gauntlets: core::ArmorPiece = core::ArmorPiece::new(core::Slot::Empty);
         for piece in &*PIECES {
-            if piece.name == String::from("cleanrot gauntlets") {
+            if piece.name == str_to_bytes("cleanrot gauntlets") {
                 cleanrot_gauntlets = piece.clone();
                 break;
             }
         }
         let expected = core::ArmorPiece {
-            name: String::from("cleanrot gauntlets"),
+            name: str_to_bytes("cleanrot gauntlets"),
+            name_length: "cleanrot gauntlets".len(),
             slot: core::Slot::Gauntlets,
             physical: 36,
             slash: 40,
@@ -109,13 +120,14 @@ pub mod tests {
     fn test_attribute_numbers_greaves() {
         let mut cleanrot_greaves: core::ArmorPiece = core::ArmorPiece::new(core::Slot::Empty);
         for piece in &*PIECES {
-            if piece.name == String::from("cleanrot greaves") {
+            if piece.name == str_to_bytes("cleanrot greaves") {
                 cleanrot_greaves = piece.clone();
                 break;
             }
         }
         let expected = core::ArmorPiece {
-            name: String::from("cleanrot greaves"),
+            name: str_to_bytes("cleanrot greaves"),
+            name_length: "cleanrot greaves".len(),
             slot: core::Slot::Legs,
             physical: 84,
             slash: 92,
@@ -143,13 +155,13 @@ pub mod tests {
         let mut cleanrot_gauntlets: core::ArmorPiece = core::ArmorPiece::new(core::Slot::Empty);
         let mut cleanrot_greaves: core::ArmorPiece = core::ArmorPiece::new(core::Slot::Empty);
         for piece in &*PIECES {
-            if piece.name == String::from("cleanrot helm") {
+            if piece.name == str_to_bytes("cleanrot helm") {
                 cleanrot_helm = piece.clone();
-            } else if piece.name == String::from("cleanrot armor") {
+            } else if piece.name == str_to_bytes("cleanrot armor") {
                 cleanrot_armor = piece.clone();
-            } else if piece.name == String::from("cleanrot gauntlets") {
+            } else if piece.name == str_to_bytes("cleanrot gauntlets") {
                 cleanrot_gauntlets = piece.clone();
-            } else if piece.name == String::from("cleanrot greaves") {
+            } else if piece.name == str_to_bytes("cleanrot greaves") {
                 cleanrot_greaves = piece.clone();
             } else {
                 continue;
@@ -163,10 +175,14 @@ pub mod tests {
         );
 
         let expected: core::ArmorSet = core::ArmorSet {
-            helm: String::from("cleanrot helm"),
-            chest: String::from("cleanrot armor"),
-            gauntlets: String::from("cleanrot gauntlets"),
-            legs: String::from("cleanrot greaves"),
+            helm: str_to_bytes("cleanrot helm"),
+            helm_length: "cleanrot helm".len(),
+            chest: str_to_bytes("cleanrot armor"),
+            chest_length: "cleanrot armor".len(),
+            gauntlets: str_to_bytes("cleanrot gauntlets"),
+            gauntlets_length: "cleanrot gauntlets".len(),
+            legs: str_to_bytes("cleanrot greaves"),
+            legs_length: "cleanrot greaves".len(),
             physical: 318,
             slash: 350,
             strike: 291,
@@ -190,10 +206,14 @@ pub mod tests {
     #[test]
     fn test_best_set() {
         let expected: core::ArmorSet = core::ArmorSet {
-            helm: String::from(""),
-            chest: String::from("cloth garb"),
-            gauntlets: String::from("gold bracelets"),
-            legs: String::from("old aristocrat shoes"),
+            helm: str_to_bytes(""),
+            helm_length: 0,
+            chest: str_to_bytes("cloth garb"),
+            chest_length: "cloth garb".len(),
+            gauntlets: str_to_bytes("gold bracelets"),
+            gauntlets_length: "gold bracelets".len(),
+            legs: str_to_bytes("old aristocrat shoes"),
+            legs_length: "old aristocrat shoes".len(),
             physical: 97,
             slash: 63,
             strike: 82,
