@@ -3,13 +3,16 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 extern crate reqwest;
 extern crate soup;
 
 pub const MAX_NAME_LENGTH: usize = 64;
+pub const MAX_THREADS: usize = 4;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Copy)]
 pub enum Slot {
     Helm,
     Chest,
@@ -18,7 +21,7 @@ pub enum Slot {
     Empty,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct ArmorPiece {
     pub name: [u8; MAX_NAME_LENGTH],
     pub name_length: usize,
@@ -86,7 +89,7 @@ impl std::fmt::Display for Slot {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct ArmorSet {
     pub helm: [u8; MAX_NAME_LENGTH],
     pub helm_length: usize,
@@ -265,54 +268,81 @@ pub fn get_set(weight_restriction: u16, pieces: Vec<ArmorPiece>) -> ArmorSet {
     let (gauntlets, legs): (Vec<ArmorPiece>, Vec<ArmorPiece>) =
         rest.into_iter().partition(|x| x.slot == Slot::Gauntlets);
 
-    let mut result = ArmorSet::new();
-    let mut potential_set: ArmorSet;
-    let mut potential_weight: u16;
-    let mut potential_maximize_stat: u16;
     println!("Finding the best set...");
-    for helm in helms {
-        for chest in &chests {
-            for gauntlet in &gauntlets {
-                for leg in &legs {
-                    // Don't allocate an ArmorSet if this gear is too heavy.
-                    potential_weight = helm.weight + chest.weight + gauntlet.weight + leg.weight;
 
-                    if potential_weight > weight_restriction {
-                        continue;
+    // Helmets are used for the outer loop. Break helmets into as many chunks as we have
+    // MAX_THREADS. Make sure to add the remainder so we don't do an extra loop with
+    // thread MAX_THREADS + 1.
+    let chunk_size = helms.len() / MAX_THREADS + (helms.len() % MAX_THREADS);
+    let final_result = Arc::new(Mutex::new(ArmorSet::new()));
+    let mut threads = vec![];
+    for chunk in helms.chunks(chunk_size) {
+        let final_result_clone = Arc::clone(&final_result);
+        let chests_clone = chests.clone();
+        let gauntlets_clone = gauntlets.clone();
+        let legs_clone = legs.clone();
+        let mut result = ArmorSet::new();
+        let chunk = chunk.to_owned();
+        let handle = thread::spawn(move || {
+            for helm in chunk {
+                for chest in &chests_clone {
+                    for gauntlet in &gauntlets_clone {
+                        for leg in &legs_clone {
+                            // Don't allocate an ArmorSet if this gear is too heavy.
+                            let potential_weight =
+                                helm.weight + chest.weight + gauntlet.weight + leg.weight;
+
+                            if potential_weight > weight_restriction {
+                                continue;
+                            }
+                            // Don't allocate an ArmorSet if result.maximize_stat is better than the
+                            // potential stat.
+                            let potential_maximize_stat = helm.maximize_stat
+                                + chest.maximize_stat
+                                + gauntlet.maximize_stat
+                                + leg.maximize_stat;
+
+                            if result.maximize_stat >= potential_maximize_stat {
+                                continue;
+                            }
+
+                            // Don't allocate an ArmorSet if the maximize_stats are the same, but the
+                            // weight is not _strictly_ better. We can avoid a few more allocations if we
+                            // don't re-assign the result when there's ties, so don't consider equal weight
+                            // a contender.
+                            if result.maximize_stat == potential_maximize_stat
+                                && result.weight < potential_weight
+                            {
+                                continue;
+                            }
+
+                            // We found one that is strictly better. Replace thread-local result
+                            // with the new set.
+                            result = ArmorSet::from(
+                                helm.clone(),
+                                chest.clone(),
+                                gauntlet.clone(),
+                                leg.clone(),
+                            );
+                        }
                     }
-
-                    // Don't allocate an ArmorSet if result.maximize_stat is better than the
-                    // potential stat.
-                    potential_maximize_stat = helm.maximize_stat
-                        + chest.maximize_stat
-                        + gauntlet.maximize_stat
-                        + leg.maximize_stat;
-
-                    if result.maximize_stat >= potential_maximize_stat {
-                        continue;
-                    }
-
-                    // Don't allocate an ArmorSet if the maximize_stats are the same, but the
-                    // weight is not _strictly_ better. We can avoid a few more allocations if we
-                    // don't re-assign the result when there's ties, so don't consider equal weight
-                    // a contender.
-                    if result.maximize_stat == potential_maximize_stat
-                        && result.weight < potential_weight
-                    {
-                        continue;
-                    }
-
-                    // We found one that is strictly better. Finally allocate the new set
-                    // and save it. Allocating a new set is time-expensive if we do it every
-                    // loop, so it's better to check all the conditions first.
-                    potential_set =
-                        ArmorSet::from(helm.clone(), chest.clone(), gauntlet.clone(), leg.clone());
-                    result = potential_set;
                 }
             }
-        }
+            // At the end of the loop, result stores the best possible armor set using the helmets
+            // available to that chunk. See if result is better than any thread's result. If so,
+            // replace it.
+            let mut guard = final_result_clone.lock().unwrap();
+            if result.maximize_stat > guard.maximize_stat {
+                *guard = result;
+            }
+        });
+        threads.push(handle);
     }
-    result
+    for handle in threads {
+        handle.join().unwrap();
+    }
+    let final_result = final_result.lock().unwrap();
+    *final_result
 }
 
 #[must_use]
