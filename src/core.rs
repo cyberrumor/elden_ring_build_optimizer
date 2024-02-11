@@ -126,7 +126,7 @@ impl ArmorSet {
             chest_length: 0,
             gauntlets: [0; MAX_NAME_LENGTH],
             gauntlets_length: 0,
-            legs: [0; 64],
+            legs: [0; MAX_NAME_LENGTH],
             legs_length: 0,
             physical: 0,
             strike: 0,
