@@ -84,16 +84,10 @@ fn main() {
 
     // Get the pieces.
     let mut pieces: Vec<core::ArmorPiece> = core::get_pieces(maximize_stat);
-    pieces = pieces
-        .into_iter()
-        .filter(|x| x.weight < weight_restriction)
-        .collect();
+    pieces.retain(|x| x.weight < weight_restriction);
 
     if !ignore_keywords.is_empty() {
-        pieces = pieces
-            .into_iter()
-            .filter(|x| ignore_keywords.iter().all(|n| !x.name.contains(n)))
-            .collect();
+        pieces.retain(|x| ignore_keywords.iter().all(|n| !x.name.contains(n)));
     }
 
     let result = core::get_set(weight_restriction, pieces);

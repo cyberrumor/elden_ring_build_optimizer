@@ -170,6 +170,12 @@ impl ArmorSet {
     }
 }
 
+impl Default for ArmorSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl std::fmt::Display for ArmorSet {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -332,7 +338,7 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
                     continue;
                 }
                 parse_result *= 10.0;
-                // There is only ever have one significant digit,
+                // Pieces only ever have one significant digit,
                 // so truncating is fine here.
                 num = parse_result as u16;
             }
@@ -340,7 +346,7 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
             match i {
                 0 => {
                     piece.name = String::with_capacity(MAX_NAME_LENGTH);
-                    piece.name.push_str(&td.text().trim().to_lowercase().to_string());
+                    piece.name.push_str(&td.text().trim().to_lowercase());
                 }
                 1 => {
                     piece.physical = num;
@@ -458,7 +464,7 @@ pub fn save_to_file(slot: &Slot, xdg_dirs: &xdg::BaseDirectories, text: &String)
     let Ok(mut file) = File::create(path) else {
         return false
     };
-    matches!(write!(file, "{text}"), Ok(_))
+    write!(file, "{text}").is_ok()
 }
 
 #[must_use]
