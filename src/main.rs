@@ -23,10 +23,7 @@ impl IgnoreKeyword {
     }
 
     fn get_name(&self) -> &str {
-        let Ok(res) = std::str::from_utf8(&self.name[..self.length]) else {
-            return &"";
-        };
-        res
+        unsafe { std::str::from_utf8_unchecked(&self.name[..self.length]) }
     }
 }
 
