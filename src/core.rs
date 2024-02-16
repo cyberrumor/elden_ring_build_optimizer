@@ -307,7 +307,8 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
 
             match i {
                 0 => {
-                    piece.name = td.text().trim().to_lowercase().to_string();
+                    piece.name = String::with_capacity(40);
+                    piece.name.push_str(&td.text().trim().to_lowercase().to_string());
                 }
                 1 => {
                     piece.physical = num;
