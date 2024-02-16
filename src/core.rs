@@ -7,8 +7,6 @@ use std::path::Path;
 extern crate reqwest;
 extern crate soup;
 
-pub const MAX_NAME_LENGTH: usize = 64;
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Slot {
     Helm,
@@ -20,8 +18,7 @@ pub enum Slot {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArmorPiece {
-    pub name: [u8; MAX_NAME_LENGTH],
-    pub name_length: usize,
+    pub name: String,
     pub slot: Slot,
     pub physical: u16,
     pub strike: u16,
@@ -42,10 +39,9 @@ pub struct ArmorPiece {
 
 impl ArmorPiece {
     #[must_use]
-    pub fn new(slot: Slot) -> Self {
+    pub const fn new(slot: Slot) -> Self {
         Self {
-            name: [0; MAX_NAME_LENGTH],
-            name_length: 0,
+            name: String::new(),
             slot,
             physical: 0,
             strike: 0,
@@ -64,17 +60,6 @@ impl ArmorPiece {
             maximize_stat: 0,
         }
     }
-
-    pub fn get_name(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.name[..self.name_length]) }
-    }
-
-    pub fn set_name(&mut self, value: &str) {
-        let bytes = value.as_bytes();
-        let length = bytes.len().min(MAX_NAME_LENGTH);
-        self.name[..length].copy_from_slice(&bytes[..length]);
-        self.name_length = length;
-    }
 }
 
 impl std::fmt::Display for Slot {
@@ -85,14 +70,10 @@ impl std::fmt::Display for Slot {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArmorSet {
-    pub helm: [u8; MAX_NAME_LENGTH],
-    pub helm_length: usize,
-    pub chest: [u8; MAX_NAME_LENGTH],
-    pub chest_length: usize,
-    pub gauntlets: [u8; MAX_NAME_LENGTH],
-    pub gauntlets_length: usize,
-    pub legs: [u8; MAX_NAME_LENGTH],
-    pub legs_length: usize,
+    pub helm: String,
+    pub chest: String,
+    pub gauntlets: String,
+    pub legs: String,
     pub physical: u16,
     pub strike: u16,
     pub slash: u16,
@@ -112,16 +93,12 @@ pub struct ArmorSet {
 
 impl ArmorSet {
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            helm: [0; MAX_NAME_LENGTH],
-            helm_length: 0,
-            chest: [0; MAX_NAME_LENGTH],
-            chest_length: 0,
-            gauntlets: [0; MAX_NAME_LENGTH],
-            gauntlets_length: 0,
-            legs: [0; 64],
-            legs_length: 0,
+            helm: String::new(),
+            chest: String::new(),
+            gauntlets: String::new(),
+            legs: String::new(),
             physical: 0,
             strike: 0,
             slash: 0,
@@ -148,13 +125,9 @@ impl ArmorSet {
     ) -> Self {
         Self {
             helm: helm.name,
-            helm_length: helm.name_length,
             chest: chest.name,
-            chest_length: chest.name_length,
             gauntlets: gauntlet.name,
-            gauntlets_length: gauntlet.name_length,
             legs: leg.name,
-            legs_length: leg.name_length,
 
             physical: helm.physical + chest.physical + gauntlet.physical + leg.physical,
 
@@ -190,22 +163,6 @@ impl ArmorSet {
                 + leg.maximize_stat,
         }
     }
-
-    pub fn get_name_helm(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.helm[..self.helm_length]) }
-    }
-
-    pub fn get_name_chest(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.chest[..self.chest_length]) }
-    }
-
-    pub fn get_name_legs(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.legs[..self.legs_length]) }
-    }
-
-    pub fn get_name_gauntlets(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.gauntlets[..self.gauntlets_length]) }
-    }
 }
 
 impl std::fmt::Display for ArmorSet {
@@ -231,10 +188,10 @@ impl std::fmt::Display for ArmorSet {
             focus:      {}\n\
             vitality:   {}\n\
             poise:      {}\n",
-            self.get_name_chest(),
-            self.get_name_helm(),
-            self.get_name_gauntlets(),
-            self.get_name_legs(),
+            self.chest,
+            self.helm,
+            self.gauntlets,
+            self.legs,
             f32::from(self.weight) / 10.0,
             f32::from(self.physical) / 10.0,
             f32::from(self.strike) / 10.0,
@@ -285,7 +242,7 @@ pub fn get_set(weight_restriction: u16, pieces: Vec<ArmorPiece>) -> ArmorSet {
                         + gauntlet.maximize_stat
                         + leg.maximize_stat;
 
-                    if result.maximize_stat >= potential_maximize_stat {
+                    if result.maximize_stat > potential_maximize_stat {
                         continue;
                     }
 
@@ -350,7 +307,7 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
 
             match i {
                 0 => {
-                    piece.set_name(&td.text().trim().to_lowercase());
+                    piece.name = td.text().trim().to_lowercase().to_string();
                 }
                 1 => {
                     piece.physical = num;
@@ -463,10 +420,10 @@ pub fn load_from_file(slot: &Slot, xdg_dirs: &xdg::BaseDirectories) -> Option<St
 #[must_use]
 pub fn save_to_file(slot: &Slot, xdg_dirs: &xdg::BaseDirectories, text: &String) -> bool {
     let Ok(path) = xdg_dirs.place_cache_file(format!("{slot}.html")) else {
-        return false;
+        return false
     };
     let Ok(mut file) = File::create(path) else {
-        return false;
+        return false
     };
     matches!(write!(file, "{text}"), Ok(_))
 }
@@ -483,7 +440,7 @@ pub fn load_from_web(
     let request = client.get(url).send();
 
     let Ok(resp) = request else { return None };
-    let Ok(body) = resp.text() else { return None };
+    let Ok(body) = resp.text() else { return None};
     Some(body)
 }
 
