@@ -10,6 +10,7 @@ extern crate reqwest;
 extern crate soup;
 
 const MAX_THREADS: usize = 4;
+const MAX_NAME_LENGTH: usize = 64;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Slot {
@@ -43,9 +44,9 @@ pub struct ArmorPiece {
 
 impl ArmorPiece {
     #[must_use]
-    pub const fn new(slot: Slot) -> Self {
+    pub fn new(slot: Slot) -> Self {
         Self {
-            name: String::new(),
+            name: String::with_capacity(MAX_NAME_LENGTH),
             slot,
             physical: 0,
             strike: 0,
@@ -97,12 +98,12 @@ pub struct ArmorSet {
 
 impl ArmorSet {
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            helm: String::new(),
-            chest: String::new(),
-            gauntlets: String::new(),
-            legs: String::new(),
+            helm: String::with_capacity(MAX_NAME_LENGTH),
+            chest: String::with_capacity(MAX_NAME_LENGTH),
+            gauntlets: String::with_capacity(MAX_NAME_LENGTH),
+            legs: String::with_capacity(MAX_NAME_LENGTH),
             physical: 0,
             strike: 0,
             slash: 0,
@@ -338,7 +339,7 @@ pub fn get_pieces_from_text(slot: &Slot, text: &str, maximize_stat: usize) -> Ve
 
             match i {
                 0 => {
-                    piece.name = String::with_capacity(40);
+                    piece.name = String::with_capacity(MAX_NAME_LENGTH);
                     piece.name.push_str(&td.text().trim().to_lowercase().to_string());
                 }
                 1 => {
